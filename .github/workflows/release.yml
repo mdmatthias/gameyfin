@@ -175,39 +175,8 @@ jobs:
           tags: ${{ steps.docker_tags.outputs.tags }}
           image_name: ghcr.io/mdmatthias/gameyfin
 
-  plugin_api:
-    needs: setup
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v6
-        with:
-          fetch-depth: 0
-
-      - name: Download modified files
-        uses: actions/download-artifact@v8
-        with:
-          name: modified-files
-
-      - name: Set up JDK 25
-        uses: actions/setup-java@v5
-        with:
-          distribution: 'temurin'
-          java-version: '25'
-
-      - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v6
-
-      - name: Build and push Plugin-API
-        run: ./gradlew publishAndReleaseToMavenCentral --no-configuration-cache
-        env:
-          ORG_GRADLE_PROJECT_signingInMemoryKey: ${{ secrets.GPG_PRIVATE_KEY }}
-          ORG_GRADLE_PROJECT_signingInMemoryKeyPassword: ${{ secrets.GPG_PASSPHRASE }}
-          ORG_GRADLE_PROJECT_mavenCentralUsername: ${{ secrets.MAVENCENTRAL_USERNAME }}
-          ORG_GRADLE_PROJECT_mavenCentralPassword: ${{ secrets.MAVENCENTRAL_PASSWORD }}
-
   finalize:
-    needs: [ docker-merge, plugin_api ]
+    needs: [ docker-merge ]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
