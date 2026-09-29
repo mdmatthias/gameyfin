@@ -18,6 +18,17 @@ import org.springframework.security.oauth2.client.registration.ClientRegistratio
 import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository
 import org.springframework.security.oauth2.client.registration.InMemoryClientRegistrationRepository
 import org.springframework.security.oauth2.core.AuthorizationGrantType
+import org.springframework.security.oauth2.core.DelegatingOAuth2TokenValidator
+import org.springframework.security.oauth2.jose.jws.SignatureAlgorithm
+import org.springframework.security.oauth2.jwt.JwtDecoder
+import org.springframework.security.oauth2.jwt.JwtDecoderFactory
+import org.springframework.security.oauth2.jwt.JwtTimestampValidator
+import org.springframework.security.oauth2.jwt.MappedJwtClaimSetConverter
+import org.springframework.security.oauth2.jwt.NimbusJwtDecoder
+import org.springframework.security.oauth2.client.oidc.authentication.OidcIdTokenValidator
+import org.springframework.http.client.SimpleClientHttpRequestFactory
+import org.springframework.web.client.RestTemplate
+import java.time.Duration
 import org.springframework.security.web.SecurityFilterChain
 import org.springframework.security.web.authentication.logout.HttpStatusReturningLogoutSuccessHandler
 
@@ -34,6 +45,10 @@ class SecurityConfig(
     companion object {
         const val SSO_PROVIDER_KEY = "oidc"
         const val LOGIN_URL = "/login"
+
+        // Spring Security's default (500 ms) is too short for slow identity providers when fetching the JWKS
+        private const val JWKS_CONNECT_TIMEOUT_MS = 30_000
+        private const val JWKS_READ_TIMEOUT_MS = 30_000
     }
 
     @Order(1)
@@ -143,5 +158,38 @@ class SecurityConfig(
             .build()
 
         return InMemoryClientRegistrationRepository(clientRegistration)
+    }
+
+    /**
+     * ID token decoder factory that fetches the JWKS with longer timeouts than Spring's defaults.
+     * Mirrors the behavior of Spring's default OidcIdTokenDecoderFactory otherwise.
+     */
+    @Bean
+    @Conditional(SsoEnabledCondition::class)
+    fun idTokenDecoderFactory(): JwtDecoderFactory<ClientRegistration> {
+        val requestFactory = SimpleClientHttpRequestFactory().apply {
+            setConnectTimeout(Duration.ofMillis(JWKS_CONNECT_TIMEOUT_MS.toLong()))
+            setReadTimeout(Duration.ofMillis(JWKS_READ_TIMEOUT_MS.toLong()))
+        }
+        val restOperations = RestTemplate(requestFactory)
+
+        return JwtDecoderFactory { registration ->
+            val jwkSetUri = registration.providerDetails.jwkSetUri
+            requireNotNull(jwkSetUri) { "Missing JWKS URL for SSO provider" }
+
+            val decoder: JwtDecoder = NimbusJwtDecoder.withJwkSetUri(jwkSetUri)
+                .jwsAlgorithm(SignatureAlgorithm.RS256)
+                .restOperations(restOperations)
+                .build()
+                .apply {
+                    setJwtValidator(
+                        DelegatingOAuth2TokenValidator(JwtTimestampValidator(), OidcIdTokenValidator(registration))
+                    )
+                    setClaimSetConverter(
+                        MappedJwtClaimSetConverter.withDefaults(emptyMap())
+                    )
+                }
+            decoder
+        }
     }
 }
