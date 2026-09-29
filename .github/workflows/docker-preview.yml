@@ -104,7 +104,7 @@ jobs:
           context: .
           file: docker/Dockerfile.ubuntu
           platform: ${{ matrix.platform }}
-          image_name: ghcr.io/gameyfin/gameyfin
+          image_name: ghcr.io/mdmatthias/gameyfin
 
   docker-merge:
     needs: [build, docker-build]
@@ -122,5 +122,5 @@ jobs:
         with:
           ghcr_username: ${{ github.actor }}
           ghcr_token: ${{ secrets.GITHUB_TOKEN }}
-          tags: ghcr.io/gameyfin/gameyfin:${{ needs.build.outputs.version }}
-          image_name: ghcr.io/gameyfin/gameyfin
+          tags: ghcr.io/mdmatthias/gameyfin:${{ needs.build.outputs.version }}
+          image_name: ghcr.io/mdmatthias/gameyfin

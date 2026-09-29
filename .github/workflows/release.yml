@@ -140,7 +140,7 @@ jobs:
           context: .
           file: docker/Dockerfile.ubuntu
           platform: ${{ matrix.platform }}
-          image_name: ghcr.io/gameyfin/gameyfin
+          image_name: ghcr.io/mdmatthias/gameyfin
 
   docker-merge:
     needs: [setup, docker-build]
@@ -157,12 +157,12 @@ jobs:
         id: docker_tags
         run: |
           VERSION='${{ needs.setup.outputs.release_version }}'
-          GHCR_TAGS="ghcr.io/gameyfin/gameyfin:$VERSION"
+          GHCR_TAGS="ghcr.io/mdmatthias/gameyfin:$VERSION"
           if [[ "$VERSION" =~ ^([0-9]+)\.([0-9]+)\.([0-9]+)$ ]]; then
             MAJOR=${BASH_REMATCH[1]}
             MINOR=${BASH_REMATCH[2]}
             PATCH=${BASH_REMATCH[3]}
-            GHCR_TAGS="ghcr.io/gameyfin/gameyfin:latest,ghcr.io/gameyfin/gameyfin:develop,ghcr.io/gameyfin/gameyfin:$VERSION,ghcr.io/gameyfin/gameyfin:$MAJOR.$MINOR,ghcr.io/gameyfin/gameyfin:$MAJOR"
+            GHCR_TAGS="ghcr.io/mdmatthias/gameyfin:latest,ghcr.io/mdmatthias/gameyfin:develop,ghcr.io/mdmatthias/gameyfin:$VERSION,ghcr.io/mdmatthias/gameyfin:$MAJOR.$MINOR,ghcr.io/mdmatthias/gameyfin:$MAJOR"
           fi
           TAGS="$GHCR_TAGS"
           echo "tags=$TAGS" >> $GITHUB_OUTPUT
@@ -173,7 +173,7 @@ jobs:
           ghcr_username: ${{ github.actor }}
           ghcr_token: ${{ secrets.GITHUB_TOKEN }}
           tags: ${{ steps.docker_tags.outputs.tags }}
-          image_name: ghcr.io/gameyfin/gameyfin
+          image_name: ghcr.io/mdmatthias/gameyfin
 
   plugin_api:
     needs: setup
