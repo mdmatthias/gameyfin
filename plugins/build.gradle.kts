@@ -92,10 +92,6 @@ subprojects {
 
         val keystorePassword = keystorePasswordProvider.get()
 
-        if ((findProperty("vaadin.productionMode") as String?) == "true" && keystorePassword.isEmpty()) {
-            throw GradleException("Keystore password must be provided when vaadin.productionMode is true. Use -P$keystorePasswordProperty=your_password or set the $keystorePasswordEnvironmentVariable environment variable.")
-        }
-
         val jarFile = tasks.jar.get().archiveFile.get().asFile
 
         // Only enable if password is present
